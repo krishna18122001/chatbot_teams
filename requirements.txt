@@ -9,3 +9,4 @@ unstructured[pdf]
 chromadb
 bitsandbytes
 accelerate
+libmagic
