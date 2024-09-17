@@ -1,0 +1,11 @@
+streamlit
+langchain
+transformers
+torch
+langchain-community
+sentence-transformers
+unstructured
+unstructured[pdf]
+chromadb
+bitsandbytes
+accelerate
