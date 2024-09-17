@@ -10,3 +10,4 @@ chromadb
 bitsandbytes
 accelerate
 libmagic
+sqlite3
