@@ -1,5 +1,6 @@
 import streamlit as st
-# import fitz  # PyMuPDF for extracting text from PDFs
+import requests
+import os
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -10,8 +11,52 @@ from transformers import AutoConfig, AutoTokenizer, pipeline, AutoModelForCausal
 import torch
 import re
 import transformers
-from torch import bfloat16
-from langchain_community.document_loaders import DirectoryLoader
+
+# Function to list all files in a GitHub folder using the GitHub API
+def list_files_in_github_folder(repo_owner, repo_name, folder_path):
+    api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{folder_path}"
+    response = requests.get(api_url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        st.error(f"Failed to list files in the folder: {response.status_code}")
+        return []
+
+# Function to download PDF from GitHub
+def download_pdf_from_github(github_raw_url, save_as):
+    response = requests.get(github_raw_url)
+    if response.status_code == 200:
+        with open(save_as, 'wb') as f:
+            f.write(response.content)
+        return save_as
+    else:
+        st.error("Failed to download the file.")
+        return None
+
+# GitHub repository details
+repo_owner = "krishna18122001"
+repo_name = "chatbot_teams"
+folder_path = "pdf"  # Path to the folder in the GitHub repository containing PDF files
+
+# List files in the GitHub folder
+files_in_github_folder = list_files_in_github_folder(repo_owner, repo_name, folder_path)
+
+# Download each PDF file from the GitHub folder
+downloaded_files = []
+for file_info in files_in_github_folder:
+    if file_info['name'].endswith(".pdf"):  # Only process PDF files
+        file_url = file_info['download_url']
+        downloaded_file = download_pdf_from_github(file_url, file_info['name'])
+        if downloaded_file:
+            downloaded_files.append(downloaded_file)
+
+# Load the downloaded PDFs into LangChain
+from langchain_community.document_loaders import PyPDFLoader  # Import PDF Loader for LangChain
+
+documents = []
+for file_path in downloaded_files:
+    loader = PyPDFLoader(file_path)
+    documents.extend(loader.load())
 
 # Initialize embeddings and ChromaDB
 model_name = "sentence-transformers/all-mpnet-base-v2"
@@ -19,10 +64,8 @@ device = "cpu"
 model_kwargs = {"device": device}
 embeddings = HuggingFaceEmbeddings(model_name=model_name, model_kwargs=model_kwargs)
 
-loader = DirectoryLoader('./pdf', glob="**/*.pdf", use_multithreading=True)
-docs = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-all_splits = text_splitter.split_documents(docs)
+all_splits = text_splitter.split_documents(documents)
 vectordb = Chroma.from_documents(documents=all_splits, embedding=embeddings, persist_directory="pdf_db")
 books_db = Chroma(persist_directory="./pdf_db", embedding_function=embeddings)
 
@@ -101,9 +144,7 @@ if st.button("Submit"):
 
 # Display previous questions and answers
 if st.session_state.history:
-    # st.write("### Previous Questions and Answers")
     for idx, item in enumerate(st.session_state.history):
         st.write(f"**Question:** {item['question']}")
         st.write(f"**Answer:** {item['answer']}")
         st.write("---")
-
