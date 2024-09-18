@@ -79,7 +79,15 @@ jobs:
           app-name: 'chatbotteams'
           slot-name: 'Production'
 
+      - name: Wait for Azure Web App initialization
+        run: sleep 60  # Wait 60 seconds for initialization
+
       - name: Copy startup.sh to /home/site/wwwroot/
         run: |
           echo "Copying startup.sh to /home/site/wwwroot/"
-          cp startup.sh /home/site/wwwroot/startup.sh
+          if [ -d /home/site/wwwroot ]; then
+            cp startup.sh /home/site/wwwroot/startup.sh
+          else
+            echo "/home/site/wwwroot does not exist"
+            exit 1
+          fi
