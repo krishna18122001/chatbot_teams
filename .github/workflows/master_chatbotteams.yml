@@ -1,7 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
-
 name: Build and deploy Python app to Azure Web App - chatbotteams
 
 on:
@@ -15,7 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python version
         uses: actions/setup-python@v5
@@ -29,9 +26,11 @@ jobs:
       
       - name: Install dependencies
         run: pip install -r requirements.txt
+        
+      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
-        run: zip -r release.zip . -x "venv/*"
+        run: zip -r release.zip ./* -x venv/\*
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
@@ -46,7 +45,7 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write
+      id-token: write # This is required for requesting the JWT
 
     steps:
       - name: Download artifact from build job
@@ -57,14 +56,23 @@ jobs:
       - name: Unzip artifact for deployment
         run: unzip release.zip -d /tmp/deployment
 
-      - name: Copy startup.sh to the web root
+      - name: Check for startup.sh
         run: |
           if [ -f /tmp/deployment/startup.sh ]; then
-            cp /tmp/deployment/startup.sh /home/site/wwwroot/
+            echo "startup.sh found!"
           else
             echo "startup.sh not found!"
             exit 1
           fi
+
+      - name: List contents of /tmp/deployment
+        run: ls -la /tmp/deployment
+
+      - name: Copy startup.sh to wwwroot
+        run: |
+          echo "Copying startup.sh to /home/site/wwwroot/"
+          cp /tmp/deployment/startup.sh /home/site/wwwroot/
+          ls -la /home/site/wwwroot/  # Verify if the file is copied
 
       - name: Login to Azure
         uses: azure/login@v2
