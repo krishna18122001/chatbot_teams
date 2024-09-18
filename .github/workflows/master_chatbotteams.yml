@@ -27,7 +27,8 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Zip artifact for deployment
-        run: zip -r release.zip ./*
+        run: |
+          zip -r release.zip ./* -x "venv/*" # Exclude the venv directory
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
