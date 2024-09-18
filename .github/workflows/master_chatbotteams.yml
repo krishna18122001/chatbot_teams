@@ -11,8 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python version
         uses: actions/setup-python@v5
@@ -23,20 +22,24 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-      
+
       - name: Install dependencies
         run: pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
-        run: zip -r release.zip ./* -x venv/\*
+        run: zip -r release.zip ./*
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
           path: release.zip
+
+      - name: Upload startup.sh as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: startup-script
+          path: startup.sh
 
   deploy:
     runs-on: ubuntu-latest
@@ -53,26 +56,13 @@ jobs:
         with:
           name: python-app
 
+      - name: Download startup.sh from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: startup-script
+
       - name: Unzip artifact for deployment
-        run: unzip release.zip -d /tmp/deployment
-
-      - name: Check for startup.sh
-        run: |
-          if [ -f /tmp/deployment/startup.sh ]; then
-            echo "startup.sh found!"
-          else
-            echo "startup.sh not found!"
-            exit 1
-          fi
-
-      - name: List contents of /tmp/deployment
-        run: ls -la /tmp/deployment
-
-      - name: Copy startup.sh to wwwroot
-        run: |
-          echo "Copying startup.sh to /home/site/wwwroot/"
-          cp /tmp/deployment/startup.sh /home/site/wwwroot/
-          ls -la /home/site/wwwroot/  # Verify if the file is copied
+        run: unzip release.zip
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -87,3 +77,8 @@ jobs:
         with:
           app-name: 'chatbotteams'
           slot-name: 'Production'
+
+      - name: Copy startup.sh to /home/site/wwwroot/
+        run: |
+          echo "Copying startup.sh to /home/site/wwwroot/"
+          cp startup.sh /home/site/wwwroot/startup.sh
