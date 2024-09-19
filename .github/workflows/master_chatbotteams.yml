@@ -78,6 +78,7 @@ jobs:
         with:
           app-name: 'chatbotteams'
           slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
 
       - name: Wait for Azure Web App initialization
         run: sleep 60  # Wait 60 seconds for initialization
