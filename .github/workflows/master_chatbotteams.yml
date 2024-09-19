@@ -63,25 +63,33 @@ jobs:
           name: startup-script
 
       - name: Unzip artifact for deployment
-        run: unzip -o release.zip
+        run: |
+          unzip -o release.zip
 
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_D4886E79261D4B03AA8C83DFB1A201A2 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6B60E18729D14282BC7175F47ABD1759 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_426BBC44A796430EA6CCD9A877EFD740 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'chatbotteams'
-          slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
+          app-name: 'teams-chatbot' # Ensure this matches the exact name of your app
+          slot-name: 'Production' # Adjust if you use a different slot
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }} # Ensure this is correct
 
       - name: Wait for Azure Web App initialization
-        run: sleep 60  # Wait 60 seconds for initialization
+        run: sleep 120  # Increased wait time for initialization
+
+      - name: Check if /home/site/wwwroot/ exists
+        run: |
+          if [ ! -d /home/site/wwwroot ]; then
+            echo "/home/site/wwwroot does not exist, creating directory"
+            mkdir -p /home/site/wwwroot
+          fi
 
       - name: Copy startup.sh to /home/site/wwwroot/
         run: |
